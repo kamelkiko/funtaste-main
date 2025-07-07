@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import logo from '../assets/images/logo.png'
-import socials from '../assets/images/icons.png'
 import mail from '../assets/images/mail.png'
 import phoneImage from '../assets/images/phone.png'
 import addressImage from '../assets/images/address.png'
@@ -49,12 +48,12 @@ export default function Footer() {
                 {/* Logo Section */}
                 <div className='flex xl:gap-[200px] justify-around md:justify-center lg:justify-center lg:gap-[50px] md:gap-[90px] text-xl mb-6 lg:mb-0 order-3 lg:order-2 '>
                     <div className="text-white font-bold text-xl mb-6 lg:mb-0">
-                        <img src={logo} className='size-24' />
+                        <img src={logo} className='size-24' alt="Restaurant Logo" />
                         {
                             info.map((infoItem, index) => {
                                 return (
 
-                                    <div style={{ color: "#557C56" }} className=''>
+                                    <div key={index} style={{ color: "#557C56" }} className=''>
                                         <span style={{ color: "#FC3B13" }}>{infoItem.name}</span>
                                         {/* <span style={{ color: "#FC3B13" }}>متعة </span>الطعام */}
                                     </div>
@@ -82,27 +81,27 @@ export default function Footer() {
                     {
                         info.map((infoItem, index) => {
                             return (
-                                <ul className=''>
+                                <ul key={index} className=''>
                                     <li className="mb-2 font-bold">تواصل معنا</li>
                                     <li className="mb-2 flex gap-2">
-                                        <img src={mail} />
+                                        <img src={mail} alt="Email icon" />
                                         <span>{infoItem.email}</span>
                                     </li>
                                     {
-                                        infoItem.phones.map((phone, index) => {
+                                        infoItem.phones.map((phone, phoneIndex) => {
                                             return (
-                                                <li className="mb-2 flex gap-2" key={index}>
-                                                    <img src={phoneImage} />
+                                                <li className="mb-2 flex gap-2" key={phoneIndex}>
+                                                    <img src={phoneImage} alt="Phone icon" />
                                                     <span>{phone}</span>
                                                 </li>
                                             )
                                         })
                                     }
                                     {
-                                        infoItem.addresses.map((address, index) => {
+                                        infoItem.addresses.map((address, addressIndex) => {
                                             return (
-                                                <li className="mb-2 flex gap-2" key={index}>
-                                                    <img src={addressImage} />
+                                                <li className="mb-2 flex gap-2" key={addressIndex}>
+                                                    <img src={addressImage} alt="Address icon" />
                                                     <span>{address}</span>
                                                 </li>
                                             )
@@ -137,33 +136,29 @@ export default function Footer() {
                         {
                             info.map((infoItem, index) => {
                                 return (
-                                    <div className='mt-4 flex gap-2' key={index}>
+                                    <div key={index} className='mt-4 flex gap-2'>
                                         {
-                                            infoItem.socialMedia.map((item, index) => {
+                                            infoItem.socialMedia.map((item, socialIndex) => {
                                                 return (
-
-                                                    item.name === 'Facebook' && <a href={item.value} target='_blank'> <img src={facebook}  /></a> 
+                                                    item.name === 'Facebook' && <a key={`facebook-${socialIndex}`} href={item.value} target='_blank' rel="noopener noreferrer"> <img src={facebook} alt="Facebook icon" /></a> 
                                                 )
                                             })}
                                         {
-                                            infoItem.socialMedia.map((item, index) => {
+                                            infoItem.socialMedia.map((item, socialIndex) => {
                                                 return (
-
-                                                    item.name === 'LinkenIn' && <a href={item.value} target='_blank'> <img src={linkendIn}  /></a> 
+                                                    item.name === 'LinkenIn' && <a key={`linkedin-${socialIndex}`} href={item.value} target='_blank' rel="noopener noreferrer"> <img src={linkendIn} alt="LinkedIn icon" /></a> 
                                                 )
                                             })}
                                         {
-                                            infoItem.socialMedia.map((item, index) => {
+                                            infoItem.socialMedia.map((item, socialIndex) => {
                                                 return (
-
-                                                    item.name === 'X' && <a href={item.value} target='_blank'> <img src={x}  /></a> 
+                                                    item.name === 'X' && <a key={`x-${socialIndex}`} href={item.value} target='_blank' rel="noopener noreferrer"> <img src={x} alt="X (Twitter) icon" /></a> 
                                                 )
                                             })}
                                         {
-                                            infoItem.socialMedia.map((item, index) => {
+                                            infoItem.socialMedia.map((item, socialIndex) => {
                                                 return (
-
-                                                    item.name === 'Instagram' && <a href={item.value}target='_blank' > <img src={instA}  /></a> 
+                                                    item.name === 'Instagram' && <a key={`instagram-${socialIndex}`} href={item.value} target='_blank' rel="noopener noreferrer"> <img src={instA} alt="Instagram icon" /></a> 
                                                 )
                                             })}
                                     </div>)

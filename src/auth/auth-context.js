@@ -1,5 +1,5 @@
 import axios from "axios";
-import React, { useContext, useState } from "react";
+import React, { useState } from "react";
 const AuthContext=React.createContext(
     {
         token:'',
@@ -64,4 +64,4 @@ export const AuthContextProvider=(props)=>{
     return <AuthContext.Provider value={contextValue}>{props.children} </AuthContext.Provider>
 }
 
-export default AuthContext; 
+export default AuthContext;
