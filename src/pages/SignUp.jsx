@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import AuthContext from "../auth/auth-context";
 import BackgroundImage from "../components/BackgroundImage";
+import LoadingSpinner from "../components/LoadingSpinner";
 import logo from '../assets/images/logo.png';
 
 export default function SignUp() {
@@ -32,6 +33,20 @@ export default function SignUp() {
         setConfirmPasswordVisible((prev) => !prev);
     };
 
+    const validateEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
+
+    const validatePhone = (phone) => {
+        const phoneRegex = /^966[0-9]{9}$/;
+        return phoneRegex.test(phone);
+    };
+
+    const validatePassword = (password) => {
+        return password.length >= 6;
+    };
+
     const handlePhoneInputChange = (e) => {
         let value = e.target.value.replace(/\D/g, "");
 
@@ -47,14 +62,20 @@ export default function SignUp() {
             value = value.slice(0, 9);
         }
 
+        const fullPhone = "966" + value;
         setUser(prevUser => ({
             ...prevUser,
-            phone: "966" + value,
+            phone: fullPhone,
         }));
 
         // Clear phone error
         if (errors.phone) {
             setErrors(prev => ({ ...prev, phone: '' }));
+        }
+
+        // Real-time validation
+        if (value.length === 9 && !validatePhone(fullPhone)) {
+            setErrors(prev => ({ ...prev, phone: 'رقم الجوال غير صحيح' }));
         }
     };
 
@@ -70,16 +91,36 @@ export default function SignUp() {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
 
-        // Real-time password confirmation check
-        if (name === 'confirmPassword' || (name === 'password' && user.confirmPassword)) {
-            const password = name === 'password' ? value : user.password;
-            const confirmPassword = name === 'confirmPassword' ? value : user.confirmPassword;
-            
-            if (confirmPassword && password !== confirmPassword) {
-                setErrors(prev => ({ ...prev, confirmPassword: 'كلمات المرور غير متطابقة' }));
-            } else {
-                setErrors(prev => ({ ...prev, confirmPassword: '' }));
-            }
+        // Real-time validation
+        switch (name) {
+            case 'fullName':
+                if (value.trim().length > 0 && value.trim().length < 2) {
+                    setErrors(prev => ({ ...prev, fullName: 'الاسم يجب أن يكون حرفين على الأقل' }));
+                }
+                break;
+            case 'email':
+                if (value.length > 0 && !validateEmail(value)) {
+                    setErrors(prev => ({ ...prev, email: 'البريد الإلكتروني غير صحيح' }));
+                }
+                break;
+            case 'password':
+                if (value.length > 0 && !validatePassword(value)) {
+                    setErrors(prev => ({ ...prev, password: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' }));
+                }
+                // Check confirm password if it exists
+                if (user.confirmPassword && value !== user.confirmPassword) {
+                    setErrors(prev => ({ ...prev, confirmPassword: 'كلمات المرور غير متطابقة' }));
+                } else if (user.confirmPassword && value === user.confirmPassword) {
+                    setErrors(prev => ({ ...prev, confirmPassword: '' }));
+                }
+                break;
+            case 'confirmPassword':
+                if (value && user.password !== value) {
+                    setErrors(prev => ({ ...prev, confirmPassword: 'كلمات المرور غير متطابقة' }));
+                }
+                break;
+            default:
+                break;
         }
     };
 
@@ -88,15 +129,19 @@ export default function SignUp() {
 
         if (!user.fullName.trim()) {
             newErrors.fullName = "الاسم مطلوب";
+        } else if (user.fullName.trim().length < 2) {
+            newErrors.fullName = "الاسم يجب أن يكون حرفين على الأقل";
         }
 
         if (!user.phone.trim()) {
             newErrors.phone = "رقم الجوال مطلوب";
+        } else if (!validatePhone(user.phone)) {
+            newErrors.phone = "رقم الجوال غير صحيح";
         }
 
         if (!user.email.trim()) {
             newErrors.email = "البريد الإلكتروني مطلوب";
-        } else if (!/\S+@\S+\.\S+/.test(user.email)) {
+        } else if (!validateEmail(user.email)) {
             newErrors.email = "البريد الإلكتروني غير صحيح";
         }
 
@@ -106,7 +151,7 @@ export default function SignUp() {
 
         if (!user.password) {
             newErrors.password = "كلمة المرور مطلوبة";
-        } else if (user.password.length < 6) {
+        } else if (!validatePassword(user.password)) {
             newErrors.password = "كلمة المرور يجب أن تكون 6 أحرف على الأقل";
         }
 
@@ -129,6 +174,7 @@ export default function SignUp() {
 
         setIsLoading(true);
         setIsError(false);
+        setErrorMessage("");
 
         try {
             const response = await axios.post("/api/signup", {
@@ -143,7 +189,13 @@ export default function SignUp() {
             navigate("/otp");
         } catch (err) {
             setIsError(true);
-            setErrorMessage(err.response?.data?.status?.messageError || "حدث خطأ في إنشاء الحساب");
+            if (err.response?.status === 409) {
+                setErrorMessage("رقم الجوال أو البريد الإلكتروني مستخدم بالفعل");
+            } else if (err.response?.status === 422) {
+                setErrorMessage("البيانات المدخلة غير صحيحة. يرجى التحقق من جميع الحقول");
+            } else {
+                setErrorMessage(err.response?.data?.status?.messageError || "حدث خطأ في إنشاء الحساب. يرجى المحاولة مرة أخرى");
+            }
         } finally {
             setIsLoading(false);
         }
@@ -171,7 +223,7 @@ export default function SignUp() {
                     </div>
 
                     {/* Sign Up Form */}
-                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-large border border-white/20">
+                    <div className="bg-white/10 dark:bg-gray-900/20 backdrop-blur-md rounded-2xl p-8 shadow-large border border-white/20 dark:border-gray-700/30">
                         <form className="space-y-6" onSubmit={handleSubmit}>
                             {/* Full Name */}
                             <div>
@@ -182,7 +234,9 @@ export default function SignUp() {
                                     id="fullName"
                                     name="fullName"
                                     type="text"
-                                    className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300"
+                                    className={`w-full px-4 py-3 bg-white/20 dark:bg-gray-800/50 backdrop-blur-sm border ${
+                                        errors.fullName ? 'border-red-400' : 'border-white/30 dark:border-gray-600'
+                                    } rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300`}
                                     placeholder="الاسم الكامل"
                                     value={user.fullName}
                                     onChange={handleInput}
@@ -200,7 +254,9 @@ export default function SignUp() {
                                         id="phone"
                                         name="phone"
                                         type="text"
-                                        className="w-full px-4 py-3 pr-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300"
+                                        className={`w-full px-4 py-3 pr-12 bg-white/20 dark:bg-gray-800/50 backdrop-blur-sm border ${
+                                            errors.phone ? 'border-red-400' : 'border-white/30 dark:border-gray-600'
+                                        } rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300`}
                                         placeholder="رقم الجوال"
                                         onChange={handlePhoneInputChange}
                                         value={user.phone.replace('966', '')}
@@ -221,7 +277,9 @@ export default function SignUp() {
                                     id="email"
                                     name="email"
                                     type="email"
-                                    className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300"
+                                    className={`w-full px-4 py-3 bg-white/20 dark:bg-gray-800/50 backdrop-blur-sm border ${
+                                        errors.email ? 'border-red-400' : 'border-white/30 dark:border-gray-600'
+                                    } rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300`}
                                     placeholder="البريد الإلكتروني"
                                     value={user.email}
                                     onChange={handleInput}
@@ -233,7 +291,7 @@ export default function SignUp() {
                             <div>
                                 <label className="block text-sm font-medium text-white mb-3">الجنس</label>
                                 <div className="flex gap-4">
-                                    <label className="flex items-center cursor-pointer">
+                                    <label className="flex-1 cursor-pointer">
                                         <input
                                             type="radio"
                                             name="gender"
@@ -241,11 +299,11 @@ export default function SignUp() {
                                             className="sr-only peer"
                                             onChange={handleInput}
                                         />
-                                        <div className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white text-center transition-all duration-300 peer-checked:bg-primary-600 peer-checked:border-primary-500 peer-checked:shadow-glow-green">
+                                        <div className="w-full px-4 py-3 bg-white/20 dark:bg-gray-800/50 backdrop-blur-sm border border-white/30 dark:border-gray-600 rounded-xl text-white text-center transition-all duration-300 peer-checked:bg-primary-600 peer-checked:border-primary-500 peer-checked:shadow-glow-green">
                                             ذكر
                                         </div>
                                     </label>
-                                    <label className="flex items-center cursor-pointer">
+                                    <label className="flex-1 cursor-pointer">
                                         <input
                                             type="radio"
                                             name="gender"
@@ -253,7 +311,7 @@ export default function SignUp() {
                                             className="sr-only peer"
                                             onChange={handleInput}
                                         />
-                                        <div className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white text-center transition-all duration-300 peer-checked:bg-primary-600 peer-checked:border-primary-500 peer-checked:shadow-glow-green">
+                                        <div className="w-full px-4 py-3 bg-white/20 dark:bg-gray-800/50 backdrop-blur-sm border border-white/30 dark:border-gray-600 rounded-xl text-white text-center transition-all duration-300 peer-checked:bg-primary-600 peer-checked:border-primary-500 peer-checked:shadow-glow-green">
                                             أنثى
                                         </div>
                                     </label>
@@ -271,7 +329,9 @@ export default function SignUp() {
                                         id="password"
                                         name="password"
                                         type={passwordVisible ? "text" : "password"}
-                                        className="w-full px-4 py-3 pr-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300"
+                                        className={`w-full px-4 py-3 pr-12 bg-white/20 dark:bg-gray-800/50 backdrop-blur-sm border ${
+                                            errors.password ? 'border-red-400' : 'border-white/30 dark:border-gray-600'
+                                        } rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300`}
                                         placeholder="كلمة المرور"
                                         value={user.password}
                                         onChange={handleInput}
@@ -303,7 +363,9 @@ export default function SignUp() {
                                         id="confirmPassword"
                                         name="confirmPassword"
                                         type={confirmPasswordVisible ? "text" : "password"}
-                                        className="w-full px-4 py-3 pr-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300"
+                                        className={`w-full px-4 py-3 pr-12 bg-white/20 dark:bg-gray-800/50 backdrop-blur-sm border ${
+                                            errors.confirmPassword ? 'border-red-400' : 'border-white/30 dark:border-gray-600'
+                                        } rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300`}
                                         placeholder="تأكيد كلمة المرور"
                                         value={user.confirmPassword}
                                         onChange={handleInput}
@@ -328,22 +390,24 @@ export default function SignUp() {
                             {/* Error Message */}
                             {isError && (
                                 <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3">
-                                    <p className="text-red-200 text-sm text-center">{errorMessage}</p>
+                                    <div className="flex items-center">
+                                        <svg className="w-5 h-5 text-red-300 ml-2" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                        <p className="text-red-200 text-sm">{errorMessage}</p>
+                                    </div>
                                 </div>
                             )}
 
                             {/* Submit Button */}
                             <button
                                 type="submit"
-                                disabled={isLoading}
+                                disabled={isLoading || Object.keys(errors).length > 0}
                                 className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-glow-green"
                             >
                                 {isLoading ? (
                                     <div className="flex items-center justify-center">
-                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
+                                        <LoadingSpinner size="sm" color="white" className="ml-2" />
                                         جاري إنشاء الحساب...
                                     </div>
                                 ) : (

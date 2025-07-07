@@ -3,6 +3,7 @@ module.exports = {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}"
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {
@@ -97,6 +98,7 @@ module.exports = {
         'bounce-slow': 'bounce 2s infinite',
         'float': 'float 6s ease-in-out infinite',
         'glow': 'glow 2s ease-in-out infinite alternate',
+        'pulse-slow': 'pulse 3s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -122,6 +124,7 @@ module.exports = {
         'large': '0 10px 40px -10px rgba(0, 0, 0, 0.15), 0 20px 25px -5px rgba(0, 0, 0, 0.1)',
         'glow-green': '0 0 20px rgba(34, 197, 94, 0.3)',
         'glow-red': '0 0 20px rgba(239, 68, 68, 0.3)',
+        'glow-blue': '0 0 20px rgba(59, 130, 246, 0.3)',
       },
       backdropBlur: {
         xs: '2px',

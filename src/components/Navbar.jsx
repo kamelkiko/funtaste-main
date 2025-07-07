@@ -2,12 +2,17 @@ import React, { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../assets/images/logo.png';
 import AuthContext from '../auth/auth-context';
+import ThemeToggle from './ThemeToggle';
+import Badge from './Badge';
 
 export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const navigate = useNavigate();
     const auth = useContext(AuthContext);
     const logged = auth.isLoggedIn;
+
+    // Mock notification count - replace with actual data
+    const notificationCount = 3;
 
     const handleLogout = () => {
         auth.logout();
@@ -16,7 +21,7 @@ export default function Navbar() {
     };
 
     return (
-        <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200/50 shadow-soft">
+        <nav className="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 shadow-soft transition-colors duration-300">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
                     {/* Logo */}
@@ -32,38 +37,41 @@ export default function Navbar() {
                     <div className="hidden md:flex items-center space-x-8">
                         <Link 
                             to="/" 
-                            className="relative text-gray-700 hover:text-primary-600 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 group"
+                            className="relative text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 group"
                         >
                             الرئيسية
                             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-primary-600 to-secondary-600 group-hover:w-full transition-all duration-300"></span>
                         </Link>
                         <Link 
                             to="/menu" 
-                            className="relative text-gray-700 hover:text-primary-600 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 group"
+                            className="relative text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 group"
                         >
                             القائمة
                             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-primary-600 to-secondary-600 group-hover:w-full transition-all duration-300"></span>
                         </Link>
                         <Link 
                             to="/plans" 
-                            className="relative text-gray-700 hover:text-primary-600 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 group"
+                            className="relative text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 group"
                         >
                             الباقات
                             <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-primary-600 to-secondary-600 group-hover:w-full transition-all duration-300"></span>
                         </Link>
                         {logged && (
-                            <Link 
-                                to="/profile" 
-                                className="relative text-gray-700 hover:text-primary-600 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 group"
-                            >
-                                حسابي
-                                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-primary-600 to-secondary-600 group-hover:w-full transition-all duration-300"></span>
-                            </Link>
+                            <Badge count={notificationCount} color="red" size="sm">
+                                <Link 
+                                    to="/profile" 
+                                    className="relative text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 group"
+                                >
+                                    حسابي
+                                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-primary-600 to-secondary-600 group-hover:w-full transition-all duration-300"></span>
+                                </Link>
+                            </Badge>
                         )}
                     </div>
 
-                    {/* Auth Buttons */}
+                    {/* Theme Toggle and Auth Buttons */}
                     <div className="hidden md:flex items-center space-x-4">
+                        <ThemeToggle />
                         {logged ? (
                             <button
                                 onClick={handleLogout}
@@ -81,7 +89,7 @@ export default function Navbar() {
                                 </Link>
                                 <Link
                                     to="/signUp"
-                                    className="text-primary-600 hover:text-primary-700 border border-primary-600 hover:border-primary-700 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
+                                    className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 border border-primary-600 dark:border-primary-400 hover:border-primary-700 dark:hover:border-primary-300 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
                                 >
                                     إنشاء حساب
                                 </Link>
@@ -90,55 +98,62 @@ export default function Navbar() {
                     </div>
 
                     {/* Mobile menu button */}
-                    <button
-                        className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            {isMenuOpen ? (
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                            ) : (
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                            )}
-                        </svg>
-                    </button>
+                    <div className="md:hidden flex items-center space-x-2">
+                        <ThemeToggle />
+                        <button
+                            className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                {isMenuOpen ? (
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                ) : (
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                                )}
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Mobile Navigation */}
                 {isMenuOpen && (
-                    <div className="md:hidden py-4 border-t border-gray-200/50 bg-white/95 backdrop-blur-md">
+                    <div className="md:hidden py-4 border-t border-gray-200/50 dark:border-gray-700/50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md">
                         <div className="flex flex-col space-y-2">
                             <Link
                                 to="/"
-                                className="text-gray-700 hover:text-primary-600 hover:bg-primary-50 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-gray-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                                 onClick={() => setIsMenuOpen(false)}
                             >
                                 الرئيسية
                             </Link>
                             <Link
                                 to="/menu"
-                                className="text-gray-700 hover:text-primary-600 hover:bg-primary-50 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-gray-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                                 onClick={() => setIsMenuOpen(false)}
                             >
                                 القائمة
                             </Link>
                             <Link
                                 to="/plans"
-                                className="text-gray-700 hover:text-primary-600 hover:bg-primary-50 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-gray-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
                                 onClick={() => setIsMenuOpen(false)}
                             >
                                 الباقات
                             </Link>
                             {logged && (
-                                <Link
-                                    to="/profile"
-                                    className="text-gray-700 hover:text-primary-600 hover:bg-primary-50 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                                    onClick={() => setIsMenuOpen(false)}
-                                >
-                                    حسابي
-                                </Link>
+                                <div className="flex items-center">
+                                    <Badge count={notificationCount} color="red" size="sm">
+                                        <Link
+                                            to="/profile"
+                                            className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-gray-800 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            حسابي
+                                        </Link>
+                                    </Badge>
+                                </div>
                             )}
-                            <div className="pt-4 border-t border-gray-200">
+                            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                                 {logged ? (
                                     <button
                                         onClick={handleLogout}
@@ -157,7 +172,7 @@ export default function Navbar() {
                                         </Link>
                                         <Link
                                             to="/signUp"
-                                            className="block w-full text-primary-600 hover:text-primary-700 border border-primary-600 hover:border-primary-700 px-3 py-2 rounded-xl text-sm font-medium text-center transition-all duration-300"
+                                            className="block w-full text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 border border-primary-600 dark:border-primary-400 hover:border-primary-700 dark:hover:border-primary-300 px-3 py-2 rounded-xl text-sm font-medium text-center transition-all duration-300"
                                             onClick={() => setIsMenuOpen(false)}
                                         >
                                             إنشاء حساب
