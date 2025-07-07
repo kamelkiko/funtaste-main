@@ -1,50 +1,62 @@
 import React, { useState, useContext } from "react";
-import food from '../assets/images/food.jpg';
-import login from '../assets/images/logo.png';
-import Navbar from "../components/Navbar";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import AuthContext from "../auth/auth-context";
+import BackgroundImage from "../components/BackgroundImage";
+import logo from '../assets/images/logo.png';
 
 export default function SignUp() {
-    const [user, setUser] = useState({ fullName: '', gender: "", phone: "", email: "", password: "" });
-    const [chicking, setChicking] = useState("");
-    const [nameCheck, setNameCheck] = useState("");
-    const [phoneCheck, setPhoneCheck] = useState("");
-    const [passCheck, setPassCheck] = useState("");
-    const [emailCheck, setEmailCheck] = useState("");
-    const [genderCheck, setGenderCheck] = useState("");
-    const [errorMessage,setErrorMessage]= useState("")
-    const [isError , setiseError] = useState(false)
-    const [chickingClass, setChickingClass] = useState(false);
-      const [passwordVisible, setPasswordVisible] = useState(false); // State to manage password visibility
-    
-      const authctx = useContext(AuthContext);
-      const togglePasswordVisibility = () => {
-          setPasswordVisible((prev) => !prev); // Toggle the visibility state
-      };
+    const [user, setUser] = useState({ 
+        fullName: '', 
+        gender: "", 
+        phone: "", 
+        email: "", 
+        password: "",
+        confirmPassword: ""
+    });
+    const [errors, setErrors] = useState({});
+    const [errorMessage, setErrorMessage] = useState("");
+    const [isError, setIsError] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [passwordVisible, setPasswordVisible] = useState(false);
+    const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+
+    const authctx = useContext(AuthContext);
     const navigate = useNavigate();
 
+    const togglePasswordVisibility = () => {
+        setPasswordVisible((prev) => !prev);
+    };
+
+    const toggleConfirmPasswordVisibility = () => {
+        setConfirmPasswordVisible((prev) => !prev);
+    };
+
     const handlePhoneInputChange = (e) => {
-        let value = e.target.value.replace(/\D/g, ""); // Remove non-numeric characters
-    
+        let value = e.target.value.replace(/\D/g, "");
+
         if (value.startsWith("966")) {
-            value = value.slice(3); // Remove the extra "966" if the user types it
+            value = value.slice(3);
         }
-    
+
         if (value.startsWith("0")) {
-            value = value.slice(1); // Remove leading zero
+            value = value.slice(1);
         }
-    
+
         if (value.length > 9) {
-            value = value.slice(0, 9); // Ensure only 9 digits are entered
+            value = value.slice(0, 9);
         }
-    
+
         setUser(prevUser => ({
             ...prevUser,
-            phone: "966" + value, // Always set the value as 966 + 9 digits
+            phone: "966" + value,
         }));
-    }
+
+        // Clear phone error
+        if (errors.phone) {
+            setErrors(prev => ({ ...prev, phone: '' }));
+        }
+    };
 
     const handleInput = (e) => {
         const { name, value } = e.target;
@@ -53,328 +65,308 @@ export default function SignUp() {
             [name]: value
         }));
 
-        // Validation for each input
-        if (name === 'fullName') {
-            if (value.trim() === "") {
-                setNameCheck("من فضلك ادخل اسمك");
-            } else {
-                setNameCheck("");
-            }
+        // Clear specific field error
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: '' }));
         }
 
-        if (name === 'phone') {
-            if (value.trim() === "") {
-                setPhoneCheck("من فضلك ادخل رقم الجوال");
+        // Real-time password confirmation check
+        if (name === 'confirmPassword' || (name === 'password' && user.confirmPassword)) {
+            const password = name === 'password' ? value : user.password;
+            const confirmPassword = name === 'confirmPassword' ? value : user.confirmPassword;
+            
+            if (confirmPassword && password !== confirmPassword) {
+                setErrors(prev => ({ ...prev, confirmPassword: 'كلمات المرور غير متطابقة' }));
             } else {
-                setPhoneCheck("");
-            }
-        }
-
-        if (name === 'email') {
-            if (value.trim() === "") {
-                setEmailCheck("من فضلك ادخل البريد الإلكتروني");
-            } else {
-                setEmailCheck("");
-            }
-        }
-
-        if (name === 'gender') {
-            if (value.trim() === "") {
-                setGenderCheck("من فضلك اختر الجنس");
-            } else {
-                setGenderCheck("");
-            }
-        }
-
-        if (name === 'password') {
-            if (value.trim() === "") {
-                setPassCheck("من فضلك ادخل كلمة المرور");
-            } else {
-                setPassCheck("");
-            }
-        }
-
-        if (name === 'confirmPassword') {
-            if (value !== user.password) {
-                setChicking("كلمة السر غير متطابقه");
-                setChickingClass(true);
-            } else {
-                setChicking("كلمة السر متطابقه");
-                setChickingClass(false);
+                setErrors(prev => ({ ...prev, confirmPassword: '' }));
             }
         }
     };
 
-    const [isChecked, setIsChecked] = useState(false);
+    const validateForm = () => {
+        const newErrors = {};
 
-    const handleCheckboxChange = (event) => {
-        setIsChecked(event.target.checked);
+        if (!user.fullName.trim()) {
+            newErrors.fullName = "الاسم مطلوب";
+        }
+
+        if (!user.phone.trim()) {
+            newErrors.phone = "رقم الجوال مطلوب";
+        }
+
+        if (!user.email.trim()) {
+            newErrors.email = "البريد الإلكتروني مطلوب";
+        } else if (!/\S+@\S+\.\S+/.test(user.email)) {
+            newErrors.email = "البريد الإلكتروني غير صحيح";
+        }
+
+        if (!user.gender) {
+            newErrors.gender = "يرجى اختيار الجنس";
+        }
+
+        if (!user.password) {
+            newErrors.password = "كلمة المرور مطلوبة";
+        } else if (user.password.length < 6) {
+            newErrors.password = "كلمة المرور يجب أن تكون 6 أحرف على الأقل";
+        }
+
+        if (!user.confirmPassword) {
+            newErrors.confirmPassword = "تأكيد كلمة المرور مطلوب";
+        } else if (user.password !== user.confirmPassword) {
+            newErrors.confirmPassword = "كلمات المرور غير متطابقة";
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
-    const addUser = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Check if any required field is empty
-        if (!user.fullName || !user.phone || !user.gender || !user.password) {
-            alert("من فضلك املأ جميع الحقول المطلوبة");
+        if (!validateForm()) {
             return;
         }
 
-        axios.post("/api/signup", user)
-            .then((res) => {
-                console.log(res.data.data);
-                authctx.phone = user.phone;
-                setiseError(false)
-                navigate("/otp");
-            })
-            .catch((err) => {
-                if (err.response) {
-                    console.log(err.response.data.status.messageError);
-                    setiseError(true)
-                    setErrorMessage(err.response.data.status.messageError)
-                } else {
-                    console.error('Error:', err.message);
-                }
+        setIsLoading(true);
+        setIsError(false);
+
+        try {
+            const response = await axios.post("/api/signup", {
+                fullName: user.fullName,
+                gender: user.gender,
+                phone: user.phone,
+                email: user.email,
+                password: user.password
             });
+
+            authctx.phone = user.phone;
+            navigate("/otp");
+        } catch (err) {
+            setIsError(true);
+            setErrorMessage(err.response?.data?.status?.messageError || "حدث خطأ في إنشاء الحساب");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
-        <div className="w-full h-full p-4 text-black font-tajawal shadow-lg" style={{ backgroundColor: "#FFE3D4" }}>
-            <div className="flex flex-col lg:flex-row h-full space-y-6 lg:space-y-0 lg:gap-[54px]">
-                {/* الجزء الأول: النموذج */}
-                <div className="w-full lg:w-2/5 flex flex-col items-end p-6">
-                    <div className="w-full max-w-md p-10 text-black text-right rounded-[20px] ml-auto">
-                        <a href="/">
-                            <img src={login} className="h-[100px] w-[115px] mr-5 mx-auto" alt="Login Icon" />
-                        </a>
-                        <h1 className="text-right text-2xl sm:text-3xl md:text-4xl font-Tajawal">انشاء حساب</h1>
-                        <p className="text-right text-sm sm:text-lg font-medium">
-                            لدي حساب بالفعل؟{" "}
-                            <a href="/login" className="text-green-500">سجل الدخول</a>
+        <BackgroundImage variant="restaurant" className="min-h-screen">
+            <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
+                <div className="max-w-lg w-full space-y-8">
+                    {/* Logo and Header */}
+                    <div className="text-center">
+                        <Link to="/" className="inline-block">
+                            <img 
+                                src={logo} 
+                                className="h-16 w-auto mx-auto animate-float" 
+                                alt="Restaurant Logo" 
+                            />
+                        </Link>
+                        <h2 className="mt-6 text-3xl font-bold text-white">
+                            إنشاء حساب جديد
+                        </h2>
+                        <p className="mt-2 text-sm text-gray-200">
+                            انضم إلينا واستمتع بتجربة طعام مميزة
                         </p>
                     </div>
 
-                    {/* النموذج */}
-                    <div className="w-full text-right ml-auto">
-                        <form className="text-black space-y-6 h-[548px]" onSubmit={addUser}>
-                            {/* الاسم الأول والأخير */}
-                            <div className="flex flex-col sm:flex-row gap-4 sm:gap-[24px]">
+                    {/* Sign Up Form */}
+                    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-large border border-white/20">
+                        <form className="space-y-6" onSubmit={handleSubmit}>
+                            {/* Full Name */}
+                            <div>
+                                <label htmlFor="fullName" className="block text-sm font-medium text-white mb-2">
+                                    الاسم الكامل
+                                </label>
                                 <input
-                                    type="text"
-                                    id="first"
+                                    id="fullName"
                                     name="fullName"
-                                    className="px-4 py-2 border border-white rounded-[20px] focus:outline-none focus:ring-2 focus:557C56 w-full sm:w-[211px]"
-                                    placeholder="الاسم"
-                                    onChange={handleInput}
-                                    value={user.fullName}
-                                />
-                                <br />
-                                <div className={`text-red-600`}>{nameCheck}</div>
-                            </div>
-
-                            {/* رقم الهاتف */}
-                            <div className="relative">
-                  
-                                <input
                                     type="text"
-                                    id="mobile"
-                                    name="phone"
-                               
-                                    required
-                                    className="px-4 py-2 text-right border border-gray-300 md:w-[447px] lg:w-[447px] rounded-[20px] focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-[447px]"
-                                    placeholder="رقم الجوال"
-                                    onChange={handlePhoneInputChange}
+                                    className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300"
+                                    placeholder="الاسم الكامل"
+                                    value={user.fullName}
+                                    onChange={handleInput}
                                 />
-                                <p className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-700 font-semibold">+966</p>
-                                <div className="absolute inset-y-0 right-3 flex items-center text-gray-500">
-                                    <i className="fas fa-phone"></i>
-                                </div>
-                                <div className={`text-red-600`}>{phoneCheck}</div>
+                                {errors.fullName && <p className="mt-1 text-sm text-red-300">{errors.fullName}</p>}
                             </div>
 
-                            {/* البريد الإلكتروني */}
-                            <input
-                                type="text"
-                                id="email"
-                                name="email"
-                                className="px-4 py-2 border border-gray-300 rounded-[20px] focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-[447px]"
-                                placeholder="البريد الالكتروني"
-                                onChange={handleInput}
-                                value={user.email}
-                            />
-                            
-
-                            {/* الجنس */}
-                            <div className="flex flex-col sm:flex-row gap-8 sm:gap-[24px]">
+                            {/* Phone */}
+                            <div>
+                                <label htmlFor="phone" className="block text-sm font-medium text-white mb-2">
+                                    رقم الجوال
+                                </label>
                                 <div className="relative">
-                                    <label htmlFor="gender" className="font-semibold text-orange-500">الجنس</label>
-                                    <div className="flex gap-4 items-center mt-3">
-                                        <div className="flex items-center">
-                                            <input
-                                                type="radio"
-                                                id="male"
-                                                name="gender"
-                                                value="Male"
-                                                className="hidden peer"
-                                                required
-                                                onChange={handleInput}
-                                            />
-                                            <label
-                                                htmlFor="male"
-                                                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-[20px] cursor-pointer peer-checked:bg-blue-500 peer-checked:text-white"
-                                            >
-                                                ذكر
-                                            </label>
-                                        </div>
-                                        <div className="flex items-center">
-                                            <input
-                                                type="radio"
-                                                id="female"
-                                                name="gender"
-                                                value="Female"
-                                                className="hidden peer"
-                                                onChange={handleInput}
-                                            />
-                                            <label
-                                                htmlFor="female"
-                                                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-[20px] cursor-pointer peer-checked:bg-blue-500 peer-checked:text-white"
-                                            >
-                                                أنثى
-                                            </label>
-                                        </div>
+                                    <input
+                                        id="phone"
+                                        name="phone"
+                                        type="text"
+                                        className="w-full px-4 py-3 pr-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300"
+                                        placeholder="رقم الجوال"
+                                        onChange={handlePhoneInputChange}
+                                        value={user.phone.replace('966', '')}
+                                    />
+                                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-300 text-sm font-medium">
+                                        +966
                                     </div>
-                                    <div className={`text-red-600`}>{genderCheck}</div>
                                 </div>
+                                {errors.phone && <p className="mt-1 text-sm text-red-300">{errors.phone}</p>}
                             </div>
 
-                            {/* كلمة المرور */}
-                            <div className="relative">
+                            {/* Email */}
+                            <div>
+                                <label htmlFor="email" className="block text-sm font-medium text-white mb-2">
+                                    البريد الإلكتروني
+                                </label>
                                 <input
-                                    type={passwordVisible ? "text" : "password"}
-                                    id="password"
-                                    name="password"
-                                    placeholder="&nbsp; &nbsp; ادخل الرقم السري"
-                                    required
-                                    className="py-2 border border-gray-300 rounded-[20px] focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-[447px]"
-                                    onChange={handleInput}
-                                    value={user.password}
-                                />
-                                 <button
-                  type="button"
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-700 font-semibold"
-                >
-                  <svg
-                    style={{ color: "green" }}
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    className="w-5 h-5"
-                    onClick={togglePasswordVisibility}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                    />
-                  </svg>
-                </button>
-                            </div>
-                                <div className={`text-red-600`}>{passCheck}</div>
-
-                            {/* تأكيد كلمة المرور */}
-                            <div className="relative">
-                                <input
-                                    type={passwordVisible ? "text" : "password"}
-                                    id="confirmPassword"
-                                    name="confirmPassword"
-                                    placeholder="&nbsp; &nbsp; تأكيد الرقم السري"
-                                    required
-                                    className="py-2 border border-gray-300 rounded-[20px] focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-[447px] "
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300"
+                                    placeholder="البريد الإلكتروني"
+                                    value={user.email}
                                     onChange={handleInput}
                                 />
-                                 <button
-                  type="button"
-                  className="absolute left-4 top-1/2 transform -translate-y-8 text-gray-700 font-semibold"
-                >
-                  <svg
-                    style={{ color: "green" }}
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    className="w-5 h-5"
-                    onClick={togglePasswordVisibility}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                    />
-                  </svg>
-                </button>
-                                <br />
+                                {errors.email && <p className="mt-1 text-sm text-red-300">{errors.email}</p>}
                             </div>
-                                <div className={`${!chickingClass ? 'text-green-600' : "text-red-600"}`}>{chicking}</div>
 
-                            {/* الشروط والأحكام */}
-                            {/* <div className="flex items-center space-x-2 justify-start">
-                                <input
-                                    type="checkbox"
-                                    id="terms"
-                                    className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-                                    onChange={handleCheckboxChange}
-                                />
-                                <label htmlFor="terms" className="text-sm text-gray-700">موافق على الشروط والأحكام</label>
-                            </div> */}
+                            {/* Gender */}
+                            <div>
+                                <label className="block text-sm font-medium text-white mb-3">الجنس</label>
+                                <div className="flex gap-4">
+                                    <label className="flex items-center cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="gender"
+                                            value="Male"
+                                            className="sr-only peer"
+                                            onChange={handleInput}
+                                        />
+                                        <div className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white text-center transition-all duration-300 peer-checked:bg-primary-600 peer-checked:border-primary-500 peer-checked:shadow-glow-green">
+                                            ذكر
+                                        </div>
+                                    </label>
+                                    <label className="flex items-center cursor-pointer">
+                                        <input
+                                            type="radio"
+                                            name="gender"
+                                            value="Female"
+                                            className="sr-only peer"
+                                            onChange={handleInput}
+                                        />
+                                        <div className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white text-center transition-all duration-300 peer-checked:bg-primary-600 peer-checked:border-primary-500 peer-checked:shadow-glow-green">
+                                            أنثى
+                                        </div>
+                                    </label>
+                                </div>
+                                {errors.gender && <p className="mt-1 text-sm text-red-300">{errors.gender}</p>}
+                            </div>
 
-                            <br />
-                            {isError && <p className="font-semibold text-red-600">{errorMessage}</p>}
-                            {/* زر التسجيل */}
+                            {/* Password */}
+                            <div>
+                                <label htmlFor="password" className="block text-sm font-medium text-white mb-2">
+                                    كلمة المرور
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        id="password"
+                                        name="password"
+                                        type={passwordVisible ? "text" : "password"}
+                                        className="w-full px-4 py-3 pr-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300"
+                                        placeholder="كلمة المرور"
+                                        value={user.password}
+                                        onChange={handleInput}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300 hover:text-white transition-colors"
+                                        onClick={togglePasswordVisibility}
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            {passwordVisible ? (
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                                            ) : (
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            )}
+                                        </svg>
+                                    </button>
+                                </div>
+                                {errors.password && <p className="mt-1 text-sm text-red-300">{errors.password}</p>}
+                            </div>
+
+                            {/* Confirm Password */}
+                            <div>
+                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-white mb-2">
+                                    تأكيد كلمة المرور
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        id="confirmPassword"
+                                        name="confirmPassword"
+                                        type={confirmPasswordVisible ? "text" : "password"}
+                                        className="w-full px-4 py-3 pr-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-300"
+                                        placeholder="تأكيد كلمة المرور"
+                                        value={user.confirmPassword}
+                                        onChange={handleInput}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300 hover:text-white transition-colors"
+                                        onClick={toggleConfirmPasswordVisibility}
+                                    >
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            {confirmPasswordVisible ? (
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                                            ) : (
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            )}
+                                        </svg>
+                                    </button>
+                                </div>
+                                {errors.confirmPassword && <p className="mt-1 text-sm text-red-300">{errors.confirmPassword}</p>}
+                            </div>
+
+                            {/* Error Message */}
+                            {isError && (
+                                <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3">
+                                    <p className="text-red-200 text-sm text-center">{errorMessage}</p>
+                                </div>
+                            )}
+
+                            {/* Submit Button */}
                             <button
                                 type="submit"
-                                className={`w-full sm:w-[447px] h-[52px] text-white py-2 px-4 rounded-[20px] hover:bg-blue-600 transition`}
-                                style={{ background: "#557C56" }}
-                                // disabled={!isChecked}
+                                disabled={isLoading}
+                                className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-glow-green"
                             >
-                                تسجيل الدخول
+                                {isLoading ? (
+                                    <div className="flex items-center justify-center">
+                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        جاري إنشاء الحساب...
+                                    </div>
+                                ) : (
+                                    'إنشاء حساب'
+                                )}
                             </button>
-                        </form>
-                        
-                    </div>
-                </div>
 
-                {/* الجزء الثاني: الصورة */}
-                <div className="hidden lg:block md:block w-full lg:w-3/7 p-6 relative">
-                    <img
-                        style={{ opacity: "0.7" }}
-                        src={food}
-                        className="lg:h-full w-full object-cover rounded-[30px] transition-all duration-300"
-                        alt="Food"
-                    />
-                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center text-white p-10 rounded-[20px]">
-                        <p className="text-sm sm:text-base md:text-lg font-bold leading-tight">
-                            باقات متنوعه في مطعمنا
-                            <br />
-                            استمتع ب اشتراك شهري يناسبك
-                        </p>
+                            {/* Login Link */}
+                            <div className="text-center">
+                                <p className="text-sm text-gray-200">
+                                    لديك حساب بالفعل؟{' '}
+                                    <Link 
+                                        to="/login" 
+                                        className="text-primary-300 hover:text-primary-200 font-medium transition-colors"
+                                    >
+                                        تسجيل الدخول
+                                    </Link>
+                                </p>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
-        </div>
+        </BackgroundImage>
     );
 }
