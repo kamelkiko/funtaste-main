@@ -183,6 +183,7 @@ export default function Login() {
                                     </div>
                                 </div>
                                 {errors.phone && <p className="mt-1 text-sm text-red-300">{errors.phone}</p>}
+                                }
                             </div>
 
                             {/* Password Input */}
@@ -218,6 +219,7 @@ export default function Login() {
                                     </button>
                                 </div>
                                 {errors.password && <p className="mt-1 text-sm text-red-300">{errors.password}</p>}
+                                }
                             </div>
 
                             {/* Forgot Password Link */}
