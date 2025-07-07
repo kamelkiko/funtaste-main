@@ -4,6 +4,8 @@
   "proxy": "https://www.funtaste.xyz",
   "private": true,
   "dependencies": {
+    "@headlessui/react": "^2.2.4",
+    "@heroicons/react": "^2.2.0",
     "axios": "^1.7.9",
     "cra-template": "1.2.0",
     "http-proxy-middleware": "^3.0.3",
